@@ -30,7 +30,7 @@ class Restaurant(models.Model):
         unique_together = ('name', 'city',)
     
     def __str__(self):
-        return self.name
+        return self.name + ' in ' + CITY_CHOICES[self.city][1]
 
 class DishCategory(models.Model):
     name = models.CharField('Category Name', max_length=50, unique=True)
@@ -75,11 +75,11 @@ class Order(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
     status = models.PositiveSmallIntegerField('Status', default=0, choices=STATUS_CHOICES)
 
-    def save(self, *args, **kwargs):
-        self.price = 0
-        for item in self.items:
-            self.price += item.price
-        super(OrderItem, self).save(*args, **kwargs)
+    def __str__(self):
+        s = ''
+        for item in self.items.all():
+            s += ', ' +  str(item)
+        return s[2:]
 
     class JSONAPIMeta:
         resource_name = 'order'
@@ -93,3 +93,6 @@ class OrderItem(models.Model):
     def save(self, *args, **kwargs):
         self.price = self.dish.price
         super(OrderItem, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return str(self.count) + ' ' + self.dish.name + ' for ' + str(self.dish.price)
