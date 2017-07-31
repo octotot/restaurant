@@ -72,14 +72,20 @@ class Order(models.Model):
     price = models.PositiveIntegerField('Price')
     operator = models.ForeignKey(User, on_delete=models.PROTECT)
     time = models.DateTimeField(auto_now_add=True)
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.PROTECT)
     status = models.PositiveSmallIntegerField('Status', default=0, choices=STATUS_CHOICES)
 
     def __str__(self):
         s = ''
         for item in self.items.all():
-            s += ', ' +  str(item)
+            s += ', ' +  str(item.count) + ' ' + str(item.dish.name)
         return s[2:]
+
+    def list_items(self):
+        s = ''
+        for item in self.items.all():
+            s += str(item) + '\n'
+        return s
 
     class JSONAPIMeta:
         resource_name = 'order'
@@ -87,7 +93,7 @@ class Order(models.Model):
 class OrderItem(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.PROTECT)
     count = models.PositiveIntegerField('Count')
-    price = models.PositiveIntegerField('Price', editable=False)
+    price = models.PositiveIntegerField('Price')
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
 
     def save(self, *args, **kwargs):
