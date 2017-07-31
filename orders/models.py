@@ -1,29 +1,35 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-class Restaurant(models.Model):
-    CITY_CHOICES = (
-        (0, 'Москва'),
-        (1, 'Санкт-Петербург'),
-    )
-    name = models.CharField('Название ресторана', max_length=100)
-    city = models.PositiveSmallIntegerField('Город', choices=CITY_CHOICES)
+CITY_CHOICES = (
+    (0, 'Moscow'),
+    (1, 'Saint Petersburg'),
+)
+
+STATUS_CHOICES = (
+    (0, 'Accepted'),
+    (1, 'Paid'),
+    (2, 'Completed'),
+    (3, 'Cancelled')
+)
+
+class Restaurant(models.Model):   
+    name = models.CharField('Restaurant Name', max_length=100)
+    city = models.PositiveSmallIntegerField('City', choices=CITY_CHOICES)
 
     class Meta:
         unique_together = ('name', 'city',)
-        verbose_name = 'Ресторан'
-        verbose_name_plural = 'Рестораны'
-
+    
     def __str__(self):
         return self.name
 
 class DishCategory(models.Model):
-    name = models.CharField('Название категории', max_length=50, unique=True)
-    parent = models.ForeignKey('self', blank=True, null=True, related_name='children')
+    name = models.CharField('Category Name', max_length=50, unique=True)
+    parent = models.ForeignKey('self', blank=True, null=True, related_name='subcategories')
 
     class Meta:
-        verbose_name = 'Категория'
-        verbose_name_plural = 'Категории'
+        verbose_name = 'Category'
+        verbose_name_plural = 'Categories'
 
     def __str__(self):
         full_path = [self.name]
@@ -35,32 +41,30 @@ class DishCategory(models.Model):
 
         return ' -> '.join(full_path[::-1])
 
+    class JSONAPIMeta:
+        resource_name = 'category'
 
 class Dish(models.Model):
-    name = models.CharField('Название блюда', max_length=100, unique=True)
-    price = models.PositiveIntegerField('Цена')
-    category = models.ForeignKey(DishCategory, on_delete=models.PROTECT)
+    name = models.CharField('Dish Name', max_length=100, unique=True)
+    price = models.PositiveIntegerField('Price')
+    category = models.ForeignKey(DishCategory, on_delete=models.PROTECT, related_name='dishes')
 
     class Meta:
-        verbose_name = 'Блюдо'
-        verbose_name_plural = 'Блюда'
+        verbose_name = 'Dish'
+        verbose_name_plural = 'Dishes'
 
     def __str__(self):
         return self.name
 
+    class JSONAPIMeta:
+        resource_name = 'dish'
+
 class Order(models.Model):
-    price = models.PositiveIntegerField('Цена')
+    price = models.PositiveIntegerField('Price')
     operator = models.ForeignKey(User, on_delete=models.PROTECT)
     time = models.DateTimeField(auto_now_add=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
-    
-    STATUS_CHOICES = (
-        (0, 'Принят'),
-        (1, 'Оплачен'),
-        (2, 'Исполнен'),
-        (3, 'Отменен')
-    )
-    status = models.PositiveSmallIntegerField('Статус', default=0, choices=STATUS_CHOICES)
+    status = models.PositiveSmallIntegerField('Status', default=0, choices=STATUS_CHOICES)
 
     def save(self, *args, **kwargs):
         self.price = 0
@@ -68,14 +72,13 @@ class Order(models.Model):
             self.price += item.price
         super(OrderItem, self).save(*args, **kwargs)
 
-    class Meta:
-        verbose_name = 'Заказ'
-        verbose_name_plural = 'Заказы'
+    class JSONAPIMeta:
+        resource_name = 'order'
 
 class OrderItem(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.PROTECT)
-    count = models.PositiveIntegerField('Количество')
-    price = models.PositiveIntegerField('Цена', editable=False)
+    count = models.PositiveIntegerField('Count')
+    price = models.PositiveIntegerField('Price', editable=False)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
 
     def save(self, *args, **kwargs):
