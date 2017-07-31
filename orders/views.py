@@ -5,15 +5,7 @@ from rest_framework.parsers import JSONParser
 from .models import Dish, DishCategory
 from .serializers import DishSerializer, DishCategorySerializer
 
-def index(request):
-    return HttpResponse("Hello, world. You're at the orders index.")
-
-def dishes_list(request):
-    dishes = Dish.objects.all()
-    serializer = DishSerializer(dishes, many=True)
-    return JsonResponse(serializer.data, safe=False)
-
-def categories_list(request):
-    categories = DishCategory.objects.all()
+def menu_list(request):
+    categories = DishCategory.objects.filter(parent=None)
     serializer = DishCategorySerializer(categories, many=True)
     return JsonResponse(serializer.data, safe=False)
